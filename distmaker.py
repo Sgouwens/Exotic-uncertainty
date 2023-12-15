@@ -11,14 +11,14 @@ from scipy.signal import fftconvolve
 
 import matplotlib.pyplot as plt
 
-p = 0.1
-N_pop = 250
+p = 0.5
+N_pop = 1000
 N_cost = int(np.ceil(N_pop*p))
 
 price = np.random.normal(loc=250, scale=10, size=N_cost)
 amount = np.random.negative_binomial(9, 0.85, N_cost)
 costs = price*amount
-costs = costs
+costs = costs / 100
 
 class Distributionfinder:
     
@@ -37,7 +37,6 @@ class Distributionfinder:
     
     def generate_bootstrap_density(self, B):
         """"""
-        # First we generate bootstrapped samples, then we use KDE to compute density
         bootstrapped_samples = np.array([self.single_bootstrap_sample() for _ in range(B)])
         bootstrapped_density = gaussian_kde(bootstrapped_samples, bw_method='silverman')
 
@@ -86,9 +85,7 @@ class Distributionfinder:
         
 class Convolver():
     """Input two densities of the class Distributionfinder for convolution. 
-    Given densities of X and Y, this computes the distribution of X+Y
-    
-    This class should not be used at this point"""
+    Given densities of X and Y, this computes the distribution of X+Y"""
     
     def __init__(self, x, y):
         # make sure can only be loaded if dist is non-empty
@@ -102,17 +99,23 @@ class Convolver():
         convolve function which performs numerical integration. The accuracy in
         our use case is equal. However in general this may not be true."""
         
-        common_grid = np.linspace(self.x.min()-np.abs(other.x.min()), self.x.max()+other.x.max(), 3000)
+        common_grid = np.linspace(min(self.x.min(), min(other.x))-1500, 
+                                  max(self.x.max(), other.x.max())+2000, 
+                                  20000)
+        
         delta_x = common_grid[1] - common_grid[0]
         
         y1_on_common_grid = interp1d(self.x, self.y, kind='linear', fill_value=0, bounds_error=False)(common_grid)
         y2_on_common_grid = interp1d(other.x, other.y, kind='linear', fill_value=0, bounds_error=False)(common_grid)
         # Below does not work as it should yet
+        
         convolution_result = fftconvolve(y1_on_common_grid, y2_on_common_grid, mode='same') * delta_x
         
-        new_distribution = Convolver(common_grid, convolution_result)
-        new_distribution.correct_boundaries()
-        return new_distribution
+        # normaliser = self.compute_moments(1)
+        
+        # new_distribution = Convolver(common_grid, convolution_result)
+        # new_distribution.correct_boundaries()
+        return Convolver(common_grid, convolution_result)
     
     def plot_density(self):
         sns.lineplot(x=self.x, y=self.y)
@@ -167,17 +170,20 @@ class Convolver():
         idx = (lower < self.x) & (self.x < upper)
         self.x = self.x[idx]
         self.y = self.y[idx]
+        
+print(np.mean(costs) * p * N_pop)
 
 distf = Distributionfinder(data=costs, popsize=N_pop, prob=p)
-distf.generate_dist_clt_trick(00, 3e4, 1000) # grenzen hier automatisch maken adhv input
+# distf.generate_bootstrap_density(1000)
+# distf.plot_density('bootstrap')
+distf.generate_dist_clt_trick(0, 2.5e3, 1000) # grenzen hier automatisch maken adhv input
 
 ct = Convolver(distf.density_clt[0], distf.density_clt[1])
-ct.correct_boundaries()
+#ct.correct_boundaries()
 ct.plot_density() 
 
-#convtest.compute_probability(1e6, 8.1e6) # FOUT!
+# ct.get_probability(ct.compute_moments(1) - 2*ct.get_sd(), 
+#                    ct.compute_moments(1) + 2*ct.get_sd())
 
-ct.get_probability(5000, 15000)
-
-ctct = ct+ct
-ctct.plot_density()
+ct2 = ct+ct
+ct2.plot_density()
