@@ -11,14 +11,6 @@ from scipy.signal import fftconvolve
 
 import matplotlib.pyplot as plt
 
-p = 0.5
-N_pop = 1000
-N_cost = int(np.ceil(N_pop*p))
-
-price = np.random.normal(loc=250, scale=10, size=N_cost)
-amount = np.random.negative_binomial(9, 0.85, N_cost)
-costs = price*amount
-costs = costs / 100
 
 class Distributionfinder:
     
@@ -171,19 +163,3 @@ class Convolver():
         self.x = self.x[idx]
         self.y = self.y[idx]
         
-print(np.mean(costs) * p * N_pop)
-
-distf = Distributionfinder(data=costs, popsize=N_pop, prob=p)
-# distf.generate_bootstrap_density(1000)
-# distf.plot_density('bootstrap')
-distf.generate_dist_clt_trick(0, 2.5e3, 1000) # grenzen hier automatisch maken adhv input
-
-ct = Convolver(distf.density_clt[0], distf.density_clt[1])
-#ct.correct_boundaries()
-ct.plot_density() 
-
-# ct.get_probability(ct.compute_moments(1) - 2*ct.get_sd(), 
-#                    ct.compute_moments(1) + 2*ct.get_sd())
-
-ct2 = ct+ct
-ct2.plot_density()
