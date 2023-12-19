@@ -44,14 +44,21 @@ def generate_data(a, compare_bootstrap_and_clt=False, lowerbound=0, upperbound=4
     
 def main():
     
+    # Shows that the trick using CLT approximates the same distribution as bootstrapping
+    # In this check, we apply the machinery to 80 year olds
     generate_data(80, compare_bootstrap_and_clt=True, lowerbound=6e4, upperbound=1e5)
     
+    # Given the costs and cost-making probabilities, compute densities using CLT trick
     list_densties = [generate_data(a) for a in ages]
     
-    for dens in list_densties:
+    # Plotting the densities
+    for dens in list_densities:
         dens.plot_density()
+    
+    # Using the __add__ magic method to apply convolution using fourier transforms
+    new_dist = list_densities[1] + list_densities[2]
+    new_dist.plot_density()
+    
         
 if __name__=='__main__':
     main()
-    
-

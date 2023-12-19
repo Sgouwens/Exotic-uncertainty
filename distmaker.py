@@ -64,7 +64,7 @@ class Distributionfinder:
                 
         return val
 
-    def generate_dist_clt_trick(self, lower, upper, num_points = 50):
+    def generate_dist_clt_trick(self, lower, upper, num_points = 500):
         """"""
         space = np.linspace(lower, upper, num_points)
         prob_costs = np.full(num_points, None)
@@ -91,23 +91,23 @@ class Convolver():
         convolve function which performs numerical integration. The accuracy in
         our use case is equal. However in general this may not be true."""
         
-        common_grid = np.linspace(min(self.x.min(), min(other.x))-1500, 
-                                  max(self.x.max(), other.x.max())+2000, 
-                                  20000)
+        dx = 0.1
+
+        boundary = 2*max(np.abs(min(min(self.x), min(other.x))),  np.abs(max(self.x) + max(other.x)))
+        common_grid = np.arange(-boundary, boundary, step=100)
+
+        interpolate_f1 = interp1d(self.x, self.y, kind='linear', fill_value=0, bounds_error=False)
+        interpolate_f2 = interp1d(other.x, other.y, kind='linear', fill_value=0, bounds_error=False)
+        other_y_interpolated = interpolate_f1(common_grid)
+        self_y_interpolated = interpolate_f2(common_grid)
+
+        self_plus_othery12 = fftconvolve(self_y_interpolated, other_y_interpolated, mode='same')
+        self_plus_othery12 /= np.trapz(self_plus_othery12, common_grid)
         
-        delta_x = common_grid[1] - common_grid[0]
+        self_plus_other = Convolver(common_grid, self_plus_othery12)
+        self_plus_other.correct_boundaries()
         
-        y1_on_common_grid = interp1d(self.x, self.y, kind='linear', fill_value=0, bounds_error=False)(common_grid)
-        y2_on_common_grid = interp1d(other.x, other.y, kind='linear', fill_value=0, bounds_error=False)(common_grid)
-        # Below does not work as it should yet
-        
-        convolution_result = fftconvolve(y1_on_common_grid, y2_on_common_grid, mode='same') * delta_x
-        
-        # normaliser = self.compute_moments(1)
-        
-        # new_distribution = Convolver(common_grid, convolution_result)
-        # new_distribution.correct_boundaries()
-        return Convolver(common_grid, convolution_result)
+        return self_plus_other
     
     def plot_density(self):
         sns.lineplot(x=self.x, y=self.y)

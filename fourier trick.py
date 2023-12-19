@@ -1,62 +1,54 @@
 import numpy as np
+from scipy.stats import norm
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
-
-from scipy.fft import fft, ifft
+from scipy.stats import norm
+from scipy.interpolate import interp1d
+from scipy.integrate import simps
+from scipy.optimize import bisect
 from scipy.signal import fftconvolve
 
-x1 = np.linspace(-10,10,50000)
-x2 = np.linspace(-4,4,10000)
+mean1, sd1 = 3, 1.5
+mean2, sd2 = -3, 1.5
 
-dx1 = x1[1]-x1[0]
-dx2 = x2[1]-x2[0]
+# Defining two density functions
+x1 = np.arange(mean1-4*sd1, mean1+4*sd1, step = 0.061)
+y1 = norm.pdf(x1, mean1, sd1)
 
-y1 = norm.pdf(x=x1, loc=-5, scale=1)
-y2 = norm.pdf(x=x2, loc=5, scale=1)
-
-y12 = np.convolve(y1, y2) / np.sum(y2)
-x12 = np.linspace(min(x1) + min(x2), max(x1) + max(x2), len(y12))
-
-y12_true = norm.pdf(x=x12, loc=0, scale=np.sqrt(1.25))
-
-sns.lineplot(x=x12, y=y12)
-#sns.lineplot(x=x12, y=y12_true)
-plt.axvline(x=0, color='r', linestyle='--', label='Vertical Line at x=30')
+x2 = np.arange(mean2-4*sd2, mean2+4*sd2, step = 0.0223) # verander formaat en interval
+y2 = norm.pdf(x2, mean2, sd2)
 
 
 
+# Defining a common grid on which the densities are interpolated
+
+boundary = 2*max(np.abs(min(min(x1), min(x2))),  max(x1) + max(x2))
+common_grid = np.arange(-boundary, boundary, step=0.01)
+
+# Make and apply interpolate functions
+interpolate_f1 = interp1d(x1, y1, kind='linear', fill_value=0, bounds_error=False)
+interpolate_f2 = interp1d(x2, y2, kind='linear', fill_value=0, bounds_error=False)
+y1_interpolated = interpolate_f1(common_grid)
+y2_interpolated = interpolate_f2(common_grid)
+
+y12 = fftconvolve(y1_interpolated ,y2_interpolated , mode='same')
+y12 /= np.trapz(y12, common_grid)
+
+# Compute desired result
+y12_true = norm.pdf(common_grid, mean1+mean2, np.sqrt(sd1**2+sd2**2))
+
+plt.plot(common_grid,y1_interpolated, color='r', label='y1')
+plt.plot(common_grid,y2_interpolated, color='r', label='y2')
+plt.plot(common_grid, y12_true, color='b', label='y12_true')
+plt.plot(common_grid, y12, label='y12_FFT')
+
+plt.legend()
+plt.show()
+
+print(common_grid[np.argmax(y12)])
+print(np.mean(np.abs(y12 - y12_true)))
 
 
-# from scipy.stats import norm, binom
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import scipy.stats as stats
-# from scipy import signal
-
-
-# # uniform_dist = stats.norm(loc=-3, scale=4)
-# # normal_dist = stats.norm(loc=3, scale=3)
-
-# delta = 1e-4
-# big_grid = np.arange(-15,15, delta)
-
-# pmf1 = norm.pdf(big_grid, loc=-3, scale=4)*delta
-# pmf2 = norm.pdf(big_grid, loc=3, scale=3)*delta
-
-# conv_pmf = signal.fftconvolve(pmf1,pmf2,'same')
-# np.convolve(pmf1,pmf2)
-# print("Sum of convoluted pmf: "+str(sum(conv_pmf)))
-
-# pdf1 = pmf1/delta
-# pdf2 = pmf2/delta
-# conv_pdf = conv_pmf/delta
-# print("Integration of convoluted pdf: " + str(np.trapz(conv_pdf, big_grid)))
-
-
-# plt.plot(big_grid,pdf1, label='Uniform')
-# plt.plot(big_grid,pdf2, label='Gaussian')
-# plt.plot(big_grid,conv_pdf, label='Sum')
-# #plt.plot(big_grid,true_pdf, label='True')
-# plt.legend(loc='best'), plt.suptitle('PDFs')
-# plt.show()
