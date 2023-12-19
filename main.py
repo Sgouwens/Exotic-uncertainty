@@ -1,8 +1,3 @@
-# TODO: Use FFT to add all distributions together to get combined distribution
-# This can be approximated by normals, but that's boring.
-
-# Figure out what are the requirements to the density to perform fft well.
-
 import numpy as np
 import pandas as pd
 import seaborn as sns

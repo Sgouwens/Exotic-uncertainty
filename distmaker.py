@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 
 class Distributionfinder:
+    """Lorem Ipsum"""
     
     def __init__(self, data, popsize, prob, density_bootstrap=None, dist_clt_trick=None):
         self.data = data
@@ -22,7 +23,10 @@ class Distributionfinder:
         self.density_clt = dist_clt_trick
         
     def single_bootstrap_sample(self):
-        """"""
+        """Samples a random set of costs with replacements, computes the sum.
+        This sum is a bootstrap sample for group costs. Multiple of such bootstrap
+        samples simulate the distribution of the sum of costs."""
+        
         amounts = np.random.binomial(self.popsize, self.prob, 1)
         prices = np.random.choice(self.data, size=amounts)
         return np.sum(prices)
@@ -37,7 +41,7 @@ class Distributionfinder:
         self.density_bootstrap = np.array([x_values, bootstrapped_density(x_values)])
         
     def plot_density(self, type='clt'): # Maak hier een density van
-        """"""
+        """Plots the density function of the object"""
         if type == 'clt':
             points = self.density_clt
         if type == 'bootstrap':
@@ -46,7 +50,7 @@ class Distributionfinder:
         sns.lineplot(x=points[0], y=points[1])
         
     def generate_dist_clt_value(self, z):
-        """"""
+        """...."""
         
         costs_mean = np.mean(self.data)
         costs_sd = np.std(self.data)  
@@ -83,13 +87,12 @@ class Convolver():
         # make sure can only be loaded if dist is non-empty
         self.x = x
         self.y = y
-        # Here, apply some useful functions beforehand.
+        self.y /= simps(self.y, self.x)
     
     def __add__(self, other):
-        pass
-        """Fourier transform for convolution is much faster than using numpy's
-        convolve function which performs numerical integration. The accuracy in
-        our use case is equal. However in general this may not be true."""
+        """Uses the fact that the density of two distributions can be computed
+        through the fourier transform of the density functions. Here it is important
+        that the common grid is symmetric"""
         
         dx = 0.1
 
@@ -102,7 +105,7 @@ class Convolver():
         self_y_interpolated = interpolate_f2(common_grid)
 
         self_plus_othery12 = fftconvolve(self_y_interpolated, other_y_interpolated, mode='same')
-        self_plus_othery12 /= np.trapz(self_plus_othery12, common_grid)
+        self_plus_othery12 /= simps(self_plus_othery12, common_grid)
         
         self_plus_other = Convolver(common_grid, self_plus_othery12)
         self_plus_other.correct_boundaries()
@@ -110,6 +113,7 @@ class Convolver():
         return self_plus_other
     
     def plot_density(self):
+        """Plots the density function of the object"""
         sns.lineplot(x=self.x, y=self.y)
     
     def compute_moments(self, k):
